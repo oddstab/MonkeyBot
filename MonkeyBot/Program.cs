@@ -29,7 +29,13 @@ namespace MonkeyBot
 {
     class Program
     {
-        static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
+        static void Main(string[] args)
+        {
+            new Program()
+                .RunBotAsync()
+                .GetAwaiter()
+                .GetResult();
+        }
 
         private IServiceProvider _services;
         private DiscordSocketClient _client;
@@ -64,6 +70,23 @@ namespace MonkeyBot
                 await _client.LoginAsync(TokenType.Bot, token);
             }
 
+            _client.Ready += () =>
+            {
+                var channel = _client.GetChannel(727853170545655890) as ISocketMessageChannel;
+                var bot = _client.GetUser(727851099209596930);
+                channel.SendMessageAsync(bot.Mention + " 已連線~:laughing:");
+                return Task.CompletedTask;
+            };
+
+            _client.Disconnected += async (ex) =>
+            {
+                var channel = _client.GetChannel(727853170545655890) as ISocketMessageChannel;
+                var bot = _client.GetUser(727851099209596930);
+                await channel.SendMessageAsync(bot.Mention + " 斷線了QQ");
+
+                await _client.GetConnectionsAsync();
+            };
+
             //Bot運作
             await _client.StartAsync();
 
@@ -92,7 +115,7 @@ namespace MonkeyBot
                 if (message.Author.IsBot) return;
 
                 int argPosa = 0;
-                if (message.HasStringPrefix("~", ref argPosa))
+                if (message.HasStringPrefix(".", ref argPosa) || message.HasStringPrefix("~", ref argPosa))
                 {
                     var result = await _commands.ExecuteAsync(context, argPosa, _services);
                     if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
